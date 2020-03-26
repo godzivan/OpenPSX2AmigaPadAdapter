@@ -1411,8 +1411,8 @@ L Device:R R?
 U 1 1 5F065439
 P 2825 5430
 AR Path="/5EFED7F9/5F065439" Ref="R?"  Part="1" 
-AR Path="/5F065439" Ref="R17"  Part="1" 
-F 0 "R17" H 2755 5476 50  0000 R CNN
+AR Path="/5F065439" Ref="R18"  Part="1" 
+F 0 "R18" H 2755 5476 50  0000 R CNN
 F 1 "10k" H 2755 5385 50  0000 R CNN
 F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 2755 5430 50  0001 C CNN
 F 3 "~" H 2825 5430 50  0001 C CNN
@@ -1458,8 +1458,8 @@ L Device:R R?
 U 1 1 5F065454
 P 4585 5005
 AR Path="/5EFED7F9/5F065454" Ref="R?"  Part="1" 
-AR Path="/5F065454" Ref="R18"  Part="1" 
-F 0 "R18" V 4378 5005 50  0000 C CNN
+AR Path="/5F065454" Ref="R17"  Part="1" 
+F 0 "R17" V 4378 5005 50  0000 C CNN
 F 1 "1M" V 4469 5005 50  0000 C CNN
 F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 4515 5005 50  0001 C CNN
 F 3 "~" H 4585 5005 50  0001 C CNN
@@ -1468,7 +1468,7 @@ F 3 "~" H 4585 5005 50  0001 C CNN
 $EndComp
 Connection ~ 4385 5005
 Text Notes 2750 5280 2    50   ~ 0
-When ~SHDN is asserted,\nTerminal A is open circuited\nand Wiper W is connected\nto Terminal B
+When ~SHDN~ is asserted,\nTerminal A is open circuited\nand Wiper W is connected\nto Terminal B
 Wire Wire Line
 	4185 4905 4800 4905
 Wire Wire Line
@@ -1657,8 +1657,6 @@ Text Label 2195 2540 2    50   ~ 0
 sda
 Text Label 2195 2640 2    50   ~ 0
 scl
-Text Notes 4160 6330 0    50   ~ 0
-Resistance between Ax and Wx is:\n(256 − D) / 256 × Rab + Rw\n\nFor instance, with AD5242BR1M:\nRaw = 3966 ohm for D = 255\nRaw = 1000060 ohm for D = 0
 Wire Wire Line
 	4185 5405 4385 5405
 Wire Wire Line
@@ -1678,33 +1676,18 @@ F 3 "" H 4385 5240 50  0001 C CNN
 $EndComp
 Text Label 5190 5305 2    50   ~ 0
 ami_poty
-$Comp
-L Device:R R?
-U 1 1 5F06546B
-P 4585 5405
-AR Path="/5EFED7F9/5F06546B" Ref="R?"  Part="1" 
-AR Path="/5F06546B" Ref="R19"  Part="1" 
-F 0 "R19" V 4378 5405 50  0000 C CNN
-F 1 "1M" V 4469 5405 50  0000 C CNN
-F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 4515 5405 50  0001 C CNN
-F 3 "~" H 4585 5405 50  0001 C CNN
-	1    4585 5405
-	0    1    -1   0   
-$EndComp
-Connection ~ 4385 5405
-Wire Wire Line
-	4185 5305 4800 5305
-Wire Wire Line
-	4385 5405 4435 5405
-Wire Wire Line
-	4735 5405 4800 5405
-Wire Wire Line
-	4800 5405 4800 5305
-Connection ~ 4800 5305
-Wire Wire Line
-	4800 5305 5190 5305
 Wire Wire Line
 	4185 5755 4290 5755
 Wire Wire Line
 	4290 4340 4290 5755
+Text Notes 4125 6285 0    50   ~ 0
+Resistance between Ax and Wx is:\nRaw = (256 − D) / 256 × Rab + Rw\n\nFor instance, with AD5242BR1M:\nRaw = 3966 ohm for D = 255\nRaw = 1000060 ohm for D = 0
+Text Label 2015 1840 0    50   ~ 0
+clk-
+Text Label 2015 1940 0    50   ~ 0
+clk+
+Wire Wire Line
+	4185 5305 5190 5305
+Text Notes 4410 5640 0    50   ~ 0
+No parallel resistor here, as\nwe already have R12, which\nshall be 1M if analog support\nis desired.
 $EndSCHEMATC
