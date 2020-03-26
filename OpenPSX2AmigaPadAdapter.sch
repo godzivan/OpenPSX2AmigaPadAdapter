@@ -1428,108 +1428,58 @@ Wire Wire Line
 	2825 5205 2825 5280
 Wire Wire Line
 	2825 4340 4290 4340
-Wire Wire Line
-	4290 4340 4290 5655
-Wire Wire Line
-	4290 5655 4185 5655
-NoConn ~ 4185 5755
+NoConn ~ 4185 5655
 Wire Wire Line
 	2825 4340 2825 5205
 Connection ~ 2825 5205
 Wire Wire Line
-	4185 4905 4385 4905
+	4185 5005 4385 5005
 Wire Wire Line
-	4385 4905 4385 4820
+	4385 5005 4385 4920
 $Comp
 L power:+5V #PWR?
 U 1 1 5F06544B
-P 4385 4820
+P 4385 4920
 AR Path="/5EFED7F9/5F06544B" Ref="#PWR?"  Part="1" 
 AR Path="/5F06544B" Ref="#PWR0105"  Part="1" 
-F 0 "#PWR0105" H 4385 4670 50  0001 C CNN
-F 1 "+5V" H 4385 4960 50  0000 C CNN
-F 2 "" H 4385 4820 50  0001 C CNN
-F 3 "" H 4385 4820 50  0001 C CNN
-	1    4385 4820
-	-1   0    0    -1  
+F 0 "#PWR0105" H 4385 4770 50  0001 C CNN
+F 1 "+5V" H 4385 5060 50  0000 C CNN
+F 2 "" H 4385 4920 50  0001 C CNN
+F 3 "" H 4385 4920 50  0001 C CNN
+	1    4385 4920
+	1    0    0    -1  
 $EndComp
 NoConn ~ 4185 5105
 NoConn ~ 4185 5505
-Text Label 5190 5005 2    50   ~ 0
+Text Label 5190 4905 2    50   ~ 0
 ami_potx
 $Comp
 L Device:R R?
 U 1 1 5F065454
-P 4585 4905
+P 4585 5005
 AR Path="/5EFED7F9/5F065454" Ref="R?"  Part="1" 
 AR Path="/5F065454" Ref="R18"  Part="1" 
-F 0 "R18" V 4378 4905 50  0000 C CNN
-F 1 "1M" V 4469 4905 50  0000 C CNN
-F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 4515 4905 50  0001 C CNN
-F 3 "~" H 4585 4905 50  0001 C CNN
-	1    4585 4905
-	0    1    1    0   
+F 0 "R18" V 4378 5005 50  0000 C CNN
+F 1 "1M" V 4469 5005 50  0000 C CNN
+F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 4515 5005 50  0001 C CNN
+F 3 "~" H 4585 5005 50  0001 C CNN
+	1    4585 5005
+	0    1    -1   0   
 $EndComp
-Connection ~ 4385 4905
+Connection ~ 4385 5005
 Text Notes 2750 5280 2    50   ~ 0
 When ~SHDN is asserted,\nTerminal A is open circuited\nand Wiper W is connected\nto Terminal B
 Wire Wire Line
-	4185 5005 4800 5005
+	4185 4905 4800 4905
 Wire Wire Line
-	4385 4905 4435 4905
+	4385 5005 4435 5005
 Wire Wire Line
-	4735 4905 4800 4905
+	4735 5005 4800 5005
 Wire Wire Line
-	4800 4905 4800 5005
-Connection ~ 4800 5005
+	4800 5005 4800 4905
+Connection ~ 4800 4905
 Wire Wire Line
-	4800 5005 5190 5005
-Wire Wire Line
-	4185 5305 4385 5305
-Wire Wire Line
-	4385 5305 4385 5220
-$Comp
-L power:+5V #PWR?
-U 1 1 5F065464
-P 4385 5220
-AR Path="/5EFED7F9/5F065464" Ref="#PWR?"  Part="1" 
-AR Path="/5F065464" Ref="#PWR0106"  Part="1" 
-F 0 "#PWR0106" H 4385 5070 50  0001 C CNN
-F 1 "+5V" H 4385 5360 50  0000 C CNN
-F 2 "" H 4385 5220 50  0001 C CNN
-F 3 "" H 4385 5220 50  0001 C CNN
-	1    4385 5220
-	-1   0    0    -1  
-$EndComp
-Text Label 5190 5405 2    50   ~ 0
-ami_poty
-$Comp
-L Device:R R?
-U 1 1 5F06546B
-P 4585 5305
-AR Path="/5EFED7F9/5F06546B" Ref="R?"  Part="1" 
-AR Path="/5F06546B" Ref="R19"  Part="1" 
-F 0 "R19" V 4378 5305 50  0000 C CNN
-F 1 "1M" V 4469 5305 50  0000 C CNN
-F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 4515 5305 50  0001 C CNN
-F 3 "~" H 4585 5305 50  0001 C CNN
-	1    4585 5305
-	0    1    1    0   
-$EndComp
-Connection ~ 4385 5305
-Wire Wire Line
-	4185 5405 4800 5405
-Wire Wire Line
-	4385 5305 4435 5305
-Wire Wire Line
-	4735 5305 4800 5305
-Wire Wire Line
-	4800 5305 4800 5405
-Connection ~ 4800 5405
-Wire Wire Line
-	4800 5405 5190 5405
-Text Notes 4370 5980 0    50   ~ 0
-Resistance between Ax and Wx is:\n(256 − D) / 256 × Rab + Rw\n\nFor instance, with AD5242BR1M:\nRaw = 3966 ohm for D = 255\nRaw = 1000060 ohm for D = 0
+	4800 4905 5190 4905
 $Comp
 L Regulator_Linear:TC1017-xCT U?
 U 1 1 5F065479
@@ -1707,4 +1657,54 @@ Text Label 2195 2540 2    50   ~ 0
 sda
 Text Label 2195 2640 2    50   ~ 0
 scl
+Text Notes 4160 6330 0    50   ~ 0
+Resistance between Ax and Wx is:\n(256 − D) / 256 × Rab + Rw\n\nFor instance, with AD5242BR1M:\nRaw = 3966 ohm for D = 255\nRaw = 1000060 ohm for D = 0
+Wire Wire Line
+	4185 5405 4385 5405
+Wire Wire Line
+	4385 5405 4385 5240
+$Comp
+L power:+5V #PWR?
+U 1 1 5F065464
+P 4385 5240
+AR Path="/5EFED7F9/5F065464" Ref="#PWR?"  Part="1" 
+AR Path="/5F065464" Ref="#PWR0106"  Part="1" 
+F 0 "#PWR0106" H 4385 5090 50  0001 C CNN
+F 1 "+5V" H 4385 5380 50  0000 C CNN
+F 2 "" H 4385 5240 50  0001 C CNN
+F 3 "" H 4385 5240 50  0001 C CNN
+	1    4385 5240
+	1    0    0    -1  
+$EndComp
+Text Label 5190 5305 2    50   ~ 0
+ami_poty
+$Comp
+L Device:R R?
+U 1 1 5F06546B
+P 4585 5405
+AR Path="/5EFED7F9/5F06546B" Ref="R?"  Part="1" 
+AR Path="/5F06546B" Ref="R19"  Part="1" 
+F 0 "R19" V 4378 5405 50  0000 C CNN
+F 1 "1M" V 4469 5405 50  0000 C CNN
+F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 4515 5405 50  0001 C CNN
+F 3 "~" H 4585 5405 50  0001 C CNN
+	1    4585 5405
+	0    1    -1   0   
+$EndComp
+Connection ~ 4385 5405
+Wire Wire Line
+	4185 5305 4800 5305
+Wire Wire Line
+	4385 5405 4435 5405
+Wire Wire Line
+	4735 5405 4800 5405
+Wire Wire Line
+	4800 5405 4800 5305
+Connection ~ 4800 5305
+Wire Wire Line
+	4800 5305 5190 5305
+Wire Wire Line
+	4185 5755 4290 5755
+Wire Wire Line
+	4290 4340 4290 5755
 $EndSCHEMATC
