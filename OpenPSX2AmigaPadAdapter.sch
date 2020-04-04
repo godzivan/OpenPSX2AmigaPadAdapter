@@ -6,7 +6,7 @@ encoding utf-8
 Sheet 1 1
 Title "OpenPSX2AmigaPadAdapter"
 Date "2020-03-26"
-Rev "4git"
+Rev "4"
 Comp "SukkoPera"
 Comment1 "Licensed under CERN OHL v.1.2"
 Comment2 ""
@@ -351,8 +351,8 @@ Text Label 5370 7215 0    60   ~ 0
 miso
 Text Label 5370 7315 0    60   ~ 0
 sck
-Text Label 3165 2740 2    60   ~ 0
-dtr
+Text Label 3335 2740 2    60   ~ 0
+dtr_in
 Wire Wire Line
 	5770 7415 5370 7415
 Wire Wire Line
@@ -432,8 +432,6 @@ F 3 "" H 4830 7290 50  0000 C CNN
 $EndComp
 Text Label 4455 7430 0    60   ~ 0
 tx
-Text Label 4455 7530 0    60   ~ 0
-dtr
 $Comp
 L power:+5V #PWR025
 U 1 1 5D19B54C
@@ -542,7 +540,7 @@ F 3 "~" H 2790 2520 50  0001 C CNN
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	2955 2740 3165 2740
+	2955 2740 3335 2740
 $Comp
 L Device:R R2
 U 1 1 5D1DED72
@@ -1152,8 +1150,6 @@ Wire Wire Line
 Connection ~ 4830 7130
 Wire Wire Line
 	4830 7130 4830 7290
-Text Notes 4455 7130 0    50   ~ 0
-cts
 Text Label 4455 7330 0    60   ~ 0
 rx
 Wire Wire Line
@@ -1690,4 +1686,6 @@ Wire Wire Line
 	4185 5305 5190 5305
 Text Notes 4410 5640 0    50   ~ 0
 No parallel resistor here, as\nwe already have R12, which\nshall be 1M if analog support\nis desired.
+Text Label 4455 7530 0    60   ~ 0
+dtr_in
 $EndSCHEMATC
