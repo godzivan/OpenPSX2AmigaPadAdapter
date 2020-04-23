@@ -1688,4 +1688,6 @@ Text Notes 4410 5640 0    50   ~ 0
 No parallel resistor here, as\nwe already have R12, which\nshall be 1M if analog support\nis desired.
 Text Label 4455 7530 0    60   ~ 0
 dtr_in
+Text Notes 8950 4360 2    50   ~ 0
+If U3 is installed,\nuse 1M for R12
 $EndSCHEMATC
