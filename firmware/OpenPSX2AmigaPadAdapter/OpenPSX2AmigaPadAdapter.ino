@@ -291,9 +291,6 @@ enum ATTR_PACKED State {
 	ST_MOUSE,					//!< Mouse mode
 	ST_CD32,					//!< CD32-controller mode
 	ST_JOYSTICK_TEMP,			//!< Just come out of CD32 mode, will it last?
-#ifdef ENABLE_ANALOG_SUPPORT
-	ST_ANALOG,					//!< Analog joystick mode
-#endif
 	
 	// States to select mapping or go into programming mode
 	ST_SELECT_HELD,				//!< Select being held
@@ -312,7 +309,14 @@ enum ATTR_PACKED State {
 #ifndef DISABLE_FACTORY_RESET
 	ST_FACTORY_RESET_WAIT_1,
 	ST_FACTORY_RESET_WAIT_2,
-	ST_FACTORY_RESET_PERFORM
+	ST_FACTORY_RESET_PERFORM,
+#endif
+
+	// States for analog output support
+#ifdef ENABLE_ANALOG_SUPPORT
+	ST_ANALOG,					//!< Analog joystick mode
+	ST_ANALOG_SELECT_HELD,
+	ST_ANALOG_ENABLE_MAPPING,
 #endif
 };
 
@@ -444,7 +448,7 @@ volatile byte *isrButtons = &GPIOR1;
  */
 typedef void (*JoyMappingFunc) (TwoButtonJoystick& j);
 
-// Default button mapping function prototypes for initialization of the following
+// Default button mapping function prototype for initialization of the following
 void mapJoystickNormal (TwoButtonJoystick& j);
 
 //! \brief Joystick mapping function currently in effect (Digital Mode)
@@ -1534,7 +1538,7 @@ void mapJoystickAnalogRight (AnalogJoystick& j) {
  * 
  * \param[out] j Mapped joystick status
  */
-void mapJoystickAnaloLHRV (AnalogJoystick& j) {
+void mapJoystickAnalogLHRV (AnalogJoystick& j) {
 	byte lx, ly, rx, ry;
 	
 	if (psx.getLeftAnalog (lx, ly) && psx.getRightAnalog (rx, ry)) {
@@ -1545,16 +1549,16 @@ void mapJoystickAnaloLHRV (AnalogJoystick& j) {
 		static int oldx = -1000;
 		static int oldy = -1000;
 
-		if (x != oldx) {
+		if (lx != oldx) {
 			debug (F("L Analog X = "));
-			debugln (x);
-			oldx = x;
+			debugln (lx);
+			oldx = lx;
 		}
 
-		if (y != oldy) {
+		if (ry != oldy) {
 			debug (F("R Analog Y = "));
-			debugln (y);
-			oldy = y;
+			debugln (ry);
+			oldy = ry;
 		}
 #endif
 	}
@@ -1575,7 +1579,7 @@ void mapJoystickAnaloLHRV (AnalogJoystick& j) {
  * 
  * \param[out] j Mapped joystick status
  */
-void mapJoystickAnaloLVRH (AnalogJoystick& j) {
+void mapJoystickAnalogLVRH (AnalogJoystick& j) {
 	byte lx, ly, rx, ry;
 	
 	if (psx.getLeftAnalog (lx, ly) && psx.getRightAnalog (rx, ry)) {
@@ -1586,16 +1590,16 @@ void mapJoystickAnaloLVRH (AnalogJoystick& j) {
 		static int oldx = -1000;
 		static int oldy = -1000;
 
-		if (x != oldx) {
+		if (rx != oldx) {
 			debug (F("R Analog X = "));
-			debugln (x);
-			oldx = x;
+			debugln (rx);
+			oldx = rx;
 		}
 
-		if (y != oldy) {
+		if (ly != oldy) {
 			debug (F("L Analog Y = "));
-			debugln (y);
-			oldy = y;
+			debugln (ly);
+			oldy = ly;
 		}
 #endif
 	}
@@ -1926,12 +1930,13 @@ void handleJoystickButtonsTemp () {
  */
 void handleAnalogJoystick () {
 	AnalogJoystick j;
+	byte x, y;
 	
 	// Call mapping function
 	analogJoyMappingFunc (j);
 
 #ifdef ENABLE_SERIAL_DEBUG
-	static AnalogJoystick oldJoy = {0, 0, false, false, false, false};
+	//~ static AnalogJoystick oldJoy = {0, 0, false, false, false, false};
 
 	//~ if (memcmp (&j, &oldJoy, sizeof (AnalogJoystick)) != 0) {
 		//~ debug (F("Sending to DB-9: "));
@@ -1941,35 +1946,31 @@ void handleAnalogJoystick () {
 #endif
 
 	// Send analog data to digipots: RDAC1 is connected to PotX, RDAC2 to PotY
-	if (swapAnalogAxes) {
+#ifdef DISABLE_ANALOG_OUTPUT_COMPENSATION
+	x = 255 - j.analogX;
+	y = 255 - j.analogY;
+#else
+	x = rcompensated[j.analogX];
+	y = rcompensated[j.analogY];
+#endif
+
+	if (swapAnalogAxes && x != y) {
 		/* Oddly enough, only a few games read the X axis from PotX and the Y
 		 * axis from PotY...
 		 */
-#ifdef DISABLE_ANALOG_OUTPUT_COMPENSATION
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, 255 - j.analogX);
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, 255 - j.analogY);
-#else
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, rcompensated[j.analogX]);
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, rcompensated[j.analogY]);
-#endif
-	} else {
-#ifdef DISABLE_ANALOG_OUTPUT_COMPENSATION
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, 255 - j.analogY);
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, 255 - j.analogX);
-#else
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, rcompensated[j.analogY]);
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, rcompensated[j.analogX]);
-#endif
+		x ^= y;
+		y ^= x;
+		x ^= y;
 	}
+
+	debug (F("Setting RDAC1,2 to "));
+	debug (x);
+	debug (F(", "));
+	debugln (y);
+	variableResistor.setValuePoint (AD5242_RDAC::RDAC1, x);
+	variableResistor.setValuePoint (AD5242_RDAC::RDAC2, y);
 
 	// Make mapped buttons affect the actual pins
-
-	if (psx.buttonJustPressed (PSB_SELECT)) {
-		swapAnalogAxes = !swapAnalogAxes;
-		flashLed (((byte) swapAnalogAxes) + 1);	// Flash-saving hack
-	}
-
-	// Buttons
 	if (j.b1) {		// This uses pin 3, i.e.: left
 		buttonPress (PIN_LEFT);
 	} else {
@@ -2326,14 +2327,82 @@ void stateMachine () {
 		}
 #ifdef ENABLE_ANALOG_SUPPORT
 		case ST_ANALOG:
-			//~ if (psx.buttonPressed (PSB_PAD_UP) || psx.buttonPressed (PSB_PAD_DOWN) ||
-				//~ psx.buttonPressed (PSB_PAD_LEFT) || psx.buttonPressed (PSB_PAD_RIGHT)) {
-				//~ // D-Pad pressed, go back to joystick mode
-				//~ mouseToJoystick ();
-				//~ *state = ST_JOYSTICK;
-			//~ } else {
+			if (psx.buttonPressed (PSB_SELECT)) {
+				*state = ST_ANALOG_SELECT_HELD;
+			} else {
 				handleAnalogJoystick ();
-			//~ }
+			}
+			break;
+		case ST_ANALOG_SELECT_HELD:
+			if (!psx.buttonPressed (PSB_SELECT)) {
+				// Select was released
+				*state = ST_ANALOG;
+			} else if (psx.buttonPressed (PSB_SQUARE)) {
+				selectComboButton = PSB_SQUARE;
+				*state = ST_ANALOG_ENABLE_MAPPING;
+			} else if (psx.buttonPressed (PSB_TRIANGLE)) {
+				selectComboButton = PSB_TRIANGLE;
+				*state = ST_ANALOG_ENABLE_MAPPING;
+			} else if (psx.buttonPressed (PSB_CIRCLE)) {
+				selectComboButton = PSB_CIRCLE;
+				*state = ST_ANALOG_ENABLE_MAPPING;
+			} else if (psx.buttonPressed (PSB_CROSS)) {
+				selectComboButton = PSB_CROSS;
+				*state = ST_ANALOG_ENABLE_MAPPING;
+			} else if (psx.buttonPressed (PSB_START)) {
+				selectComboButton = PSB_START;
+				*state = ST_ANALOG_ENABLE_MAPPING;
+			} else if (psx.buttonPressed (PSB_PAD_DOWN)) {
+				selectComboButton = PSB_PAD_DOWN;
+				*state = ST_ANALOG_ENABLE_MAPPING;
+			}
+			break;
+		case ST_ANALOG_ENABLE_MAPPING:
+			// Change button mapping
+			switch (selectComboButton) {
+				case PSB_SQUARE:
+					debugln (F("Setting left analog mapping"));
+					analogJoyMappingFunc = mapJoystickAnalogLeft;
+					flashLed (JMAP_NORMAL);
+					break;
+				case PSB_CROSS:
+					debugln (F("Setting right analog mapping"));
+					analogJoyMappingFunc = mapJoystickAnalogRight;
+					flashLed (JMAP_RACING1);
+					break;
+				case PSB_TRIANGLE:
+					debugln (F("Setting LHRV analog mapping"));
+					analogJoyMappingFunc = mapJoystickAnalogLHRV;
+					flashLed (JMAP_RACING2);
+					break;
+				case PSB_CIRCLE:
+					debugln (F("Setting LVRH analog mapping"));
+					analogJoyMappingFunc = mapJoystickAnalogLVRH;
+					flashLed (JMAP_PLATFORM);
+					break;
+				case PSB_START:
+					//~ if (swapAnalogAxes) {
+						//~ flashLed (2);
+					//~ } else {
+						//~ flashLed (1);
+					//~ }
+					debugln (F("Swapping axes"));
+					flashLed (((byte) swapAnalogAxes) + 1);	// Flash-saving hack
+					swapAnalogAxes = !swapAnalogAxes;
+					break;
+				case PSB_PAD_DOWN:
+					flashLed (2);
+					analogToDigital ();
+					*state = ST_JOYSTICK;
+					break;
+				default:
+					break;
+			}
+			
+			if (*state == ST_ANALOG_ENABLE_MAPPING) {
+				*state = ST_ANALOG;		// Get out!
+			}
+			
 			break;
 #endif
 				
