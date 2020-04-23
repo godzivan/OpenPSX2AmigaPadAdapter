@@ -29,12 +29,20 @@ for i in x:
 	rraw.append (r)
 pyplot.plot (x, rraw, label = 'Available Raw Resistance Values', color = 'y')
 
+# Rwb
+# ~ rraw_wb = []
+# ~ for i in x:
+	# ~ r = i / 256.0 * float (R_AB) + R_WIPER
+	# ~ rraw_wb.append (r)
+# ~ pyplot.plot (x, rraw_wb, label = 'Available Rwb Resistance Values')
+
 ravail = []
 for r in rraw:
 	ravail.append (par (r, RPAR))
 pyplot.plot (x, ravail, label = 'Available Paralleled Resistance Values', color = 'r')
 
 rcompensated = []
+rcompensatedn = []
 for i in x:
 	rtgt = float (RTGTMAX) * i / STEPS
 	print "Target : %u" % rtgt
@@ -48,10 +56,19 @@ for i in x:
 			n = j
 
 	rcompensated.append (ravail[n])
+	rcompensatedn.append (n)
 	print "Closest value: %u (%u), diff = %f (%u%%)" % (ravail[n], n, mindiff, (0 if rtgt == 0 else int (mindiff * 100.0 / rtgt)))
 	print "-" * 80
 
 pyplot.plot (x, rcompensated, label = 'Compensated Resistance Values', color = 'g')
+
+print "-" * 80
+print "const byte rcompensated[%u] = {\n\t" % len (rcompensatedn),
+for i, r in enumerate (rcompensatedn):
+	print "%u, " % r,
+	if (i + 1) % 8 == 0:
+		print "\n\t",
+print "\r};"
 
 # ~ pyplot.title('mindmajix')
 pyplot.ylabel ('Resistance')
