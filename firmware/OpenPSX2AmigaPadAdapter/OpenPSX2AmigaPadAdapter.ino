@@ -77,6 +77,21 @@
  */
 //~ #define DISABLE_FACTORY_RESET
 
+/** \def ENABLE_ANALOG_SUPPORT
+ *
+ * \brief Enable support for analog joystick output
+ *
+ * This enables capability for the adapter to appear as an analog joystick. The
+ * horizontal and vertical movement of the controller will be somehow reflected
+ * on the PotX and PotY pins. Of course this will only work if an analog-capable
+ * controller is connected.
+ *
+ * A V4 PCB with an AD5242 chip is needed for this functionality.
+ */
+#define ENABLE_ANALOG_SUPPORT
+
+//~ #define DISABLE_ANALOG_OUTPUT_COMPENSATION
+
 //! \name OUTPUT pins, connected to Amiga port
 //! @{
 const byte PIN_UP = 4;    //!< Amiga Pin 1
@@ -107,6 +122,25 @@ const byte PIN_BTNREGOUT = PIN_BTN2;
  * The shifting is clocked by rising edges on this pin.
  */
 const byte PIN_BTNREGCLK = PIN_BTN1;
+
+#ifdef ENABLE_ANALOG_SUPPORT
+/** \brief PotX Analog input pin
+ * 
+ * Only used in analog mode. Note that most games actually use this for the Y
+ * axis.
+ *
+ * \sa PIN_POTY
+ */
+const byte PIN_POTX = PIN_PADMODE;		// Pin 5
+
+/** \brief PotY Analog input pin
+ * 
+ * Only used in analog mode.
+ *
+ * \sa PIN_POTX
+ */
+const byte PIN_POTY = PIN_BTN2;		// Pin 5
+#endif
 
 /** \brief Dead zone for analog sticks
  *  
@@ -223,6 +257,12 @@ const unsigned long DEBOUNCE_TIME_COMBO = 150U;
 #define PIN_CD32MODE A4
 #endif
 
+#ifdef ENABLE_ANALOG_SUPPORT
+#include "VariableResistor.h"
+VariableResistor variableResistor;
+boolean haveAnalogCapability = false;
+#endif
+
 //! \name Button bits for CD32 mode
 //! @{
 const byte BTN_BLUE =		1U << 0U;	//!< \a Blue Button
@@ -251,6 +291,9 @@ enum ATTR_PACKED State {
 	ST_MOUSE,					//!< Mouse mode
 	ST_CD32,					//!< CD32-controller mode
 	ST_JOYSTICK_TEMP,			//!< Just come out of CD32 mode, will it last?
+#ifdef ENABLE_ANALOG_SUPPORT
+	ST_ANALOG,					//!< Analog joystick mode
+#endif
 	
 	// States to select mapping or go into programming mode
 	ST_SELECT_HELD,				//!< Select being held
@@ -302,6 +345,25 @@ struct TwoButtonJoystick {
 	boolean b1: 1;			//!< Button 1
 	boolean b2: 1;			//!< Button 2
 };
+
+#ifdef ENABLE_ANALOG_SUPPORT
+/** \brief Structure representing an Analog Joystick for the Amiga
+ * 
+ * This is used for gathering axis movement and button presses.
+ * 
+ * For the buttons, \a True means pressed. Note that most (if not all) games
+ * support up to 2 buttons, but the \a AnaCal calibration program supports 4, so
+ * why not?
+ */
+struct AnalogJoystick {
+	byte analogX;			//!< Horizontal axis
+	byte analogY;			//!< Vertical axis
+	boolean b1: 1;			//!< Button 1
+	boolean b2: 1;			//!< Button 2
+	boolean b3: 1;			//!< Button 3
+	boolean b4: 1;			//!< Button 4
+};
+#endif
 
 /** \brief Map a PSX button to a two-button-joystick combo
  * 
@@ -382,11 +444,73 @@ volatile byte *isrButtons = &GPIOR1;
  */
 typedef void (*JoyMappingFunc) (TwoButtonJoystick& j);
 
-// Default button mapping function prototype for initialization of the following
+// Default button mapping function prototypes for initialization of the following
 void mapJoystickNormal (TwoButtonJoystick& j);
 
-//! \brief Joystick mapping function currently in effect
+//! \brief Joystick mapping function currently in effect (Digital Mode)
 JoyMappingFunc joyMappingFunc = mapJoystickNormal;
+
+#ifdef ENABLE_ANALOG_SUPPORT
+/** \brief Analog Joystick mapping function
+ * 
+ * This represents a function that should inspect the buttons currently being
+ * pressed on the PSX controller and somehow map them to a #AnalogJoystick to be
+ * sent to the DB-9 port.
+ */
+typedef void (*AnalogJoyMappingFunc) (AnalogJoystick& j);
+
+void mapJoystickAnalogLeft (AnalogJoystick& j);
+
+//! \brief Joystick mapping function currently in effect (Analog Mode)
+AnalogJoyMappingFunc analogJoyMappingFunc = mapJoystickAnalogLeft;
+
+/** \brief Swap X/Y axes
+ * 
+ * There is no real standard for analog joysticks on the Amiga, so different
+ * games map the X/Y axes differently. Let's cope with that!
+ */
+boolean swapAnalogAxes = false;
+
+#ifndef DISABLE_ANALOG_OUTPUT_COMPENSATION
+
+const byte rcompensated[256] = {
+	255,  255,  255,  255,  254,  254,  253,  253,  
+	252,  252,  251,  251,  250,  250,  249,  249,  
+	248,  248,  247,  247,  246,  246,  245,  245,  
+	244,  244,  243,  243,  242,  242,  241,  241,  
+	240,  240,  239,  238,  238,  237,  237,  236,  
+	236,  235,  235,  234,  234,  233,  232,  232,  
+	231,  231,  230,  230,  229,  228,  228,  227,  
+	227,  226,  226,  225,  224,  224,  223,  223,  
+	222,  221,  221,  220,  219,  219,  218,  218,  
+	217,  216,  216,  215,  215,  214,  213,  213,  
+	212,  211,  211,  210,  209,  209,  208,  207,  
+	207,  206,  205,  205,  204,  203,  203,  202,  
+	201,  201,  200,  199,  198,  198,  197,  196,  
+	196,  195,  194,  193,  193,  192,  191,  190,  
+	190,  189,  188,  187,  187,  186,  185,  184,  
+	184,  183,  182,  181,  181,  180,  179,  178,  
+	177,  177,  176,  175,  174,  173,  172,  172,  
+	171,  170,  169,  168,  167,  167,  166,  165,  
+	164,  163,  162,  161,  161,  160,  159,  158,  
+	157,  156,  155,  154,  153,  152,  151,  150,  
+	150,  149,  148,  147,  146,  145,  144,  143,  
+	142,  141,  140,  139,  138,  137,  136,  135,  
+	134,  133,  132,  131,  130,  129,  128,  126,  
+	125,  124,  123,  122,  121,  120,  119,  118,  
+	117,  116,  114,  113,  112,  111,  110,  109,  
+	107,  106,  105,  104,  103,  102,  100,  99,  
+	98,  97,  95,  94,  93,  92,  90,  89,  
+	88,  86,  85,  84,  83,  81,  80,  79,  
+	77,  76,  74,  73,  72,  70,  69,  67,  
+	66,  65,  63,  62,  60,  59,  57,  56,  
+	54,  53,  51,  50,  48,  47,  45,  44,  
+	42,  40,  39,  37,  36,  34,  32,  31,  
+};
+
+#endif
+
+#endif
 
 /** \brief Commodore 64 mode
  *
@@ -897,11 +1021,6 @@ void setup () {
 	 */
 	loadConfigurations ();
 
-	/* This pin tells us when to toggle in/out of CD32 mode, and it will always
-	 * be an input
-	 */
-	fastPinMode (PIN_PADMODE, INPUT_PULLUP);
-
 #ifdef SUPER_OPTIMIZE
 	/* Prepare interrupts: INT0 is triggered by pin 2, i.e. PIN_PADMODE, so it
 	 * must be triggered on CHANGE.
@@ -917,6 +1036,36 @@ void setup () {
 	EICRA |= (1 << ISC11) | (1 << ISC10);
 
 	// Interrupts are not activated here, preparation is enough :)
+#endif
+
+#ifdef ENABLE_ANALOG_SUPPORT
+	// Analog support enabled, let's see if the AD5242 is actually installed
+	if (variableResistor.begin ()) {
+		haveAnalogCapability = true;
+		debugln (F("AD5242 chip found"));
+
+		/* This means that R12 is 1M, let's parallel some resistance and turn it
+		 * about 10k
+		 */
+		variableResistor.setOutputs (0, 1);		// Bring out of shutdown
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, 253);	// 11641 ohm
+
+		// Same goes for the pull-up on pin 5/POTX/PIN_PADMODE, parallel to R17
+		fastPinMode (PIN_PADMODE, INPUT);
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, 253);	// 11641 ohm
+	} else {
+		/* This pin tells us when to toggle in/out of CD32 mode, and it will always
+		 * be an input
+		 */
+		fastPinMode (PIN_PADMODE, INPUT_PULLUP);
+	
+		debugln (F("AD5242 chip NOT found, disabling analog capability"));
+	}
+#else
+	/* This pin tells us when to toggle in/out of CD32 mode, and it will always
+	 * be an input
+	 */
+	fastPinMode (PIN_PADMODE, INPUT_PULLUP);
 #endif
 
 #ifdef ENABLE_INSTRUMENTATION
@@ -1004,6 +1153,65 @@ void cd32ToMouse () {
 	fastDigitalWrite (PIN_BTN2, LOW);
 	fastPinMode (PIN_BTN2, INPUT);
 }
+
+#ifdef ENABLE_ANALOG_SUPPORT
+void digitalToAnalog () {
+	debugln (F("Digital -> Analog"));
+
+	// We'll ned to drive PotX, let's avoid triggering CD32 mode
+	disableCD32Trigger ();
+
+	// PotX and PotY will be drive by AD5242, don't interfere
+	fastDigitalWrite (PIN_POTX, LOW);
+	fastPinMode (PIN_POTX, INPUT);
+	fastDigitalWrite (PIN_POTY, LOW);
+	fastPinMode (PIN_POTY, INPUT);
+
+	// Not really necessary...
+	variableResistor.resetToMid (AD5242_RDAC::RDAC1);
+	variableResistor.resetToMid (AD5242_RDAC::RDAC2);
+
+	/* These are probably redundant, but let's make direction pins ready for
+	 * open-collector emulation, as there are used for buttons in analog mode
+	 */
+	//~ fastDigitalWrite (PIN_UP, LOW);
+	//~ fastPinMode (PIN_UP, INPUT);
+	//~ fastDigitalWrite (PIN_DOWN, LOW);
+	//~ fastPinMode (PIN_DOWN, INPUT);
+	//~ fastDigitalWrite (PIN_LEFT, LOW);
+	//~ fastPinMode (PIN_LEFT, INPUT);
+	//~ fastDigitalWrite (PIN_RIGHT, LOW);
+	//~ fastPinMode (PIN_RIGHT, INPUT);
+}
+
+void analogToDigital () {
+	debugln (F("Analog -> Digital"));
+
+	// PotX is pin 5, used for Atari/CD32 mode
+	fastPinMode (PIN_POTX, INPUT);
+	variableResistor.setValuePoint (AD5242_RDAC::RDAC1, 253);	// 10k Pull-up
+
+	// PotY is pin 9, used for button 2 in open-collector emulation
+	fastDigitalWrite (PIN_BTN2, LOW);
+	fastPinMode (PIN_BTN2, INPUT);
+	variableResistor.setValuePoint (AD5242_RDAC::RDAC2, 253);	// 10k Pull-up
+
+	/* These are probably redundant, but let's make direction pins ready for
+	 * open-collector emulation, as there are used for buttons in analog mode
+	 */
+	//~ fastDigitalWrite (PIN_UP, LOW);
+	//~ fastPinMode (PIN_UP, INPUT);
+	//~ fastDigitalWrite (PIN_DOWN, LOW);
+	//~ fastPinMode (PIN_DOWN, INPUT);
+	//~ fastDigitalWrite (PIN_LEFT, LOW);
+	//~ fastPinMode (PIN_LEFT, INPUT);
+	//~ fastDigitalWrite (PIN_RIGHT, LOW);
+	//~ fastPinMode (PIN_RIGHT, INPUT);
+
+	// Be ready to switch to ST_CD32
+	enableCD32Trigger ();
+}
+#endif
 
 /** \brief Report a button as pressed on the DB-9 port
  * 
@@ -1239,6 +1447,168 @@ void mapJoystickPlatform (TwoButtonJoystick& j) {
 
 	// Triangle/Lx are button 2
 	j.b2 = psx.buttonPressed (PSB_TRIANGLE) || psx.buttonPressed (PSB_L1) || psx.buttonPressed (PSB_L2) || psx.buttonPressed (PSB_L3);
+}
+
+/** \brief Map PSX controller to analog joystick (Left stick)
+ * 
+ * \param[out] j Mapped joystick status
+ */
+void mapJoystickAnalogLeft (AnalogJoystick& j) {
+	byte x, y;
+	
+	if (psx.getLeftAnalog (x, y)) {				// 0 ... 255
+		j.analogX = x;
+		j.analogY = y;
+
+#ifdef ENABLE_SERIAL_DEBUG
+		static int oldx = -1000;
+		static int oldy = -1000;
+
+		if (x != oldx) {
+			debug (F("L Analog X = "));
+			debugln (x);
+			oldx = x;
+		}
+
+		if (y != oldy) {
+			debug (F("L Analog Y = "));
+			debugln (y);
+			oldy = y;
+		}
+#endif
+	}
+	
+	// Square/Rx are button 1
+	j.b1 = psx.buttonPressed (PSB_SQUARE) || psx.buttonPressed (PSB_R1) || psx.buttonPressed (PSB_R2) || psx.buttonPressed (PSB_R3);
+
+	// Triangle/Lx are button 2, which is reported on pin 4 (i.e.: right)
+	j.b2 = psx.buttonPressed (PSB_CROSS) || psx.buttonPressed (PSB_L1) || psx.buttonPressed (PSB_L2) || psx.buttonPressed (PSB_L3);
+
+	// AnaCal supports 4 buttons, so give them some meaning
+	j.b3 = psx.buttonPressed (PSB_CIRCLE);
+	j.b4 = psx.buttonPressed (PSB_TRIANGLE);
+}
+
+/** \brief Map PSX controller to analog joystick (Right stick)
+ * 
+ * \param[out] j Mapped joystick status
+ */
+void mapJoystickAnalogRight (AnalogJoystick& j) {
+	byte x, y;
+	
+	if (psx.getRightAnalog (x, y)) {				// 0 ... 255
+		j.analogX = x;
+		j.analogY = y;
+
+#ifdef ENABLE_SERIAL_DEBUG
+		static int oldx = -1000;
+		static int oldy = -1000;
+
+		if (x != oldx) {
+			debug (F("L Analog X = "));
+			debugln (x);
+			oldx = x;
+		}
+
+		if (y != oldy) {
+			debug (F("L Analog Y = "));
+			debugln (y);
+			oldy = y;
+		}
+#endif
+	}
+	
+	// Square/Rx are button 1
+	j.b1 = psx.buttonPressed (PSB_SQUARE) || psx.buttonPressed (PSB_R1) || psx.buttonPressed (PSB_R2) || psx.buttonPressed (PSB_R3);
+
+	// Triangle/Lx are button 2, which is reported on pin 4 (i.e.: right)
+	j.b2 = psx.buttonPressed (PSB_CROSS) || psx.buttonPressed (PSB_L1) || psx.buttonPressed (PSB_L2) || psx.buttonPressed (PSB_L3);
+
+	// AnaCal supports 4 buttons, so give them some meaning
+	j.b3 = psx.buttonPressed (PSB_CIRCLE);
+	j.b4 = psx.buttonPressed (PSB_TRIANGLE);
+}
+
+/** \brief Map PSX controller to analog joystick (Left stick for horizontal
+ *         axis, right stick for vertical axis)
+ * 
+ * \param[out] j Mapped joystick status
+ */
+void mapJoystickAnaloLHRV (AnalogJoystick& j) {
+	byte lx, ly, rx, ry;
+	
+	if (psx.getLeftAnalog (lx, ly) && psx.getRightAnalog (rx, ry)) {
+		j.analogX = lx;
+		j.analogY = ry;
+
+#ifdef ENABLE_SERIAL_DEBUG
+		static int oldx = -1000;
+		static int oldy = -1000;
+
+		if (x != oldx) {
+			debug (F("L Analog X = "));
+			debugln (x);
+			oldx = x;
+		}
+
+		if (y != oldy) {
+			debug (F("R Analog Y = "));
+			debugln (y);
+			oldy = y;
+		}
+#endif
+	}
+	
+	// Square/Rx are button 1
+	j.b1 = psx.buttonPressed (PSB_SQUARE) || psx.buttonPressed (PSB_R1) || psx.buttonPressed (PSB_R2) || psx.buttonPressed (PSB_R3);
+
+	// Triangle/Lx are button 2, which is reported on pin 4 (i.e.: right)
+	j.b2 = psx.buttonPressed (PSB_CROSS) || psx.buttonPressed (PSB_L1) || psx.buttonPressed (PSB_L2) || psx.buttonPressed (PSB_L3);
+
+	// AnaCal supports 4 buttons, so give them some meaning
+	j.b3 = psx.buttonPressed (PSB_CIRCLE);
+	j.b4 = psx.buttonPressed (PSB_TRIANGLE);
+}
+
+/** \brief Map PSX controller to analog joystick (Left stick for vertical
+ *         axis, right stick for horizontal axis)
+ * 
+ * \param[out] j Mapped joystick status
+ */
+void mapJoystickAnaloLVRH (AnalogJoystick& j) {
+	byte lx, ly, rx, ry;
+	
+	if (psx.getLeftAnalog (lx, ly) && psx.getRightAnalog (rx, ry)) {
+		j.analogX = rx;
+		j.analogY = ly;
+
+#ifdef ENABLE_SERIAL_DEBUG
+		static int oldx = -1000;
+		static int oldy = -1000;
+
+		if (x != oldx) {
+			debug (F("R Analog X = "));
+			debugln (x);
+			oldx = x;
+		}
+
+		if (y != oldy) {
+			debug (F("L Analog Y = "));
+			debugln (y);
+			oldy = y;
+		}
+#endif
+	}
+	
+	// Square/Rx are button 1
+	j.b1 = psx.buttonPressed (PSB_SQUARE) || psx.buttonPressed (PSB_R1) || psx.buttonPressed (PSB_R2) || psx.buttonPressed (PSB_R3);
+
+	// Triangle/Lx are button 2, which is reported on pin 4 (i.e.: right)
+	j.b2 = psx.buttonPressed (PSB_CROSS) || psx.buttonPressed (PSB_L1) || psx.buttonPressed (PSB_L2) || psx.buttonPressed (PSB_L3);
+
+	// AnaCal supports 4 buttons, so give them some meaning
+	j.b3 = psx.buttonPressed (PSB_CIRCLE);
+	j.b4 = psx.buttonPressed (PSB_TRIANGLE);
 }
 
 /** \brief Map PSX controller buttons to two-button joystick according to the
@@ -1547,6 +1917,82 @@ void handleJoystickButtonsTemp () {
 	}
 	
 	interrupts ();
+}
+
+/** \brief Update the output pins (Analog mode)
+ * 
+ * This functions updates the status of all pins of the DB-9 port. It does so
+ * after calling the current analog joystick mapping function.
+ */
+void handleAnalogJoystick () {
+	AnalogJoystick j;
+	
+	// Call mapping function
+	analogJoyMappingFunc (j);
+
+#ifdef ENABLE_SERIAL_DEBUG
+	static AnalogJoystick oldJoy = {0, 0, false, false, false, false};
+
+	//~ if (memcmp (&j, &oldJoy, sizeof (AnalogJoystick)) != 0) {
+		//~ debug (F("Sending to DB-9: "));
+		//~ dumpJoy (j);
+		//~ oldJoy = j;
+	//~ }
+#endif
+
+	// Send analog data to digipots: RDAC1 is connected to PotX, RDAC2 to PotY
+	if (swapAnalogAxes) {
+		/* Oddly enough, only a few games read the X axis from PotX and the Y
+		 * axis from PotY...
+		 */
+#ifdef DISABLE_ANALOG_OUTPUT_COMPENSATION
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, 255 - j.analogX);
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, 255 - j.analogY);
+#else
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, rcompensated[j.analogX]);
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, rcompensated[j.analogY]);
+#endif
+	} else {
+#ifdef DISABLE_ANALOG_OUTPUT_COMPENSATION
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, 255 - j.analogY);
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, 255 - j.analogX);
+#else
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, rcompensated[j.analogY]);
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, rcompensated[j.analogX]);
+#endif
+	}
+
+	// Make mapped buttons affect the actual pins
+
+	if (psx.buttonJustPressed (PSB_SELECT)) {
+		swapAnalogAxes = !swapAnalogAxes;
+		flashLed (((byte) swapAnalogAxes) + 1);	// Flash-saving hack
+	}
+
+	// Buttons
+	if (j.b1) {		// This uses pin 3, i.e.: left
+		buttonPress (PIN_LEFT);
+	} else {
+		buttonRelease (PIN_LEFT);
+	}
+
+	if (j.b2) {		// Pin 4, i.e.: right
+		buttonPress (PIN_RIGHT);
+	} else {
+		buttonRelease (PIN_RIGHT);
+	}
+
+	if (j.b3) {		// Pin 1, i.e.: up
+		buttonPress (PIN_UP);
+	} else {
+		buttonRelease (PIN_RIGHT);
+	}
+
+	if (j.b4) {		// Pin 2, i.e.: down
+		buttonPress (PIN_DOWN);
+	} else {
+		buttonRelease (PIN_DOWN);
+	}
 }
 
 /** \brief Update all output pins for Mouse mode
@@ -1878,6 +2324,18 @@ void stateMachine () {
 			}
 			break;
 		}
+#ifdef ENABLE_ANALOG_SUPPORT
+		case ST_ANALOG:
+			//~ if (psx.buttonPressed (PSB_PAD_UP) || psx.buttonPressed (PSB_PAD_DOWN) ||
+				//~ psx.buttonPressed (PSB_PAD_LEFT) || psx.buttonPressed (PSB_PAD_RIGHT)) {
+				//~ // D-Pad pressed, go back to joystick mode
+				//~ mouseToJoystick ();
+				//~ *state = ST_JOYSTICK;
+			//~ } else {
+				handleAnalogJoystick ();
+			//~ }
+			break;
+#endif
 				
 		/**********************************************************************
 		 * SELECT MAPPING/SWITCH TO PROGRAMMING MODE
@@ -1912,6 +2370,9 @@ void stateMachine () {
 				*state = ST_SELECT_AND_BTN_HELD;
 			} else if (psx.buttonPressed (PSB_START)) {
 				selectComboButton = PSB_START;
+				*state = ST_SELECT_AND_BTN_HELD;
+			} else if (psx.buttonPressed (PSB_PAD_UP)) {
+				selectComboButton = PSB_PAD_UP;
 				*state = ST_SELECT_AND_BTN_HELD;
 			}
 			break;
@@ -1980,11 +2441,21 @@ void stateMachine () {
 					flashLed (((byte) c64Mode) + 1);	// Flash-saving hack
 					c64Mode = !c64Mode;
 					break;
+#ifdef ENABLE_ANALOG_SUPPORT
+				case PSB_PAD_UP:
+					flashLed (1);
+					digitalToAnalog ();
+					*state = ST_ANALOG;
+					break;
+#endif
 				default:
 					// Shouldn't be reached
 					break;
 			}
-			*state = ST_JOYSTICK;
+			
+			if (*state == ST_ENABLE_MAPPING) {
+				*state = ST_JOYSTICK;		// Get out!
+			}
 			break;
 		
 		/**********************************************************************
