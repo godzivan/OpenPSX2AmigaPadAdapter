@@ -139,7 +139,9 @@ const byte PIN_POTX = PIN_PADMODE;		// Pin 5
  *
  * \sa PIN_POTX
  */
-const byte PIN_POTY = PIN_BTN2;		// Pin 5
+const byte PIN_POTY = PIN_BTN2;			// Pin 5
+
+const byte RDAC_PULLUP_VALUE = 253;		// 11641 ohm
 #endif
 
 /** \brief Dead zone for analog sticks
@@ -1052,11 +1054,12 @@ void setup () {
 		 * about 10k
 		 */
 		variableResistor.setOutputs (0, 1);		// Bring out of shutdown
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, 253);	// 11641 ohm
+		delay (200);		// Give digipot time to startup fully
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC2, RDAC_PULLUP_VALUE);
 
 		// Same goes for the pull-up on pin 5/POTX/PIN_PADMODE, parallel to R17
 		fastPinMode (PIN_PADMODE, INPUT);
-		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, 253);	// 11641 ohm
+		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, RDAC_PULLUP_VALUE);
 	} else {
 		/* This pin tells us when to toggle in/out of CD32 mode, and it will always
 		 * be an input
@@ -1192,13 +1195,14 @@ void analogToDigital () {
 	debugln (F("Analog -> Digital"));
 
 	// PotX is pin 5, used for Atari/CD32 mode
+	fastDigitalWrite (PIN_POTX, LOW);
 	fastPinMode (PIN_POTX, INPUT);
-	variableResistor.setValuePoint (AD5242_RDAC::RDAC1, 253);	// 10k Pull-up
+	variableResistor.setValuePoint (AD5242_RDAC::RDAC1, RDAC_PULLUP_VALUE);
 
 	// PotY is pin 9, used for button 2 in open-collector emulation
-	fastDigitalWrite (PIN_BTN2, LOW);
-	fastPinMode (PIN_BTN2, INPUT);
-	variableResistor.setValuePoint (AD5242_RDAC::RDAC2, 253);	// 10k Pull-up
+	fastDigitalWrite (PIN_POTY, LOW);
+	fastPinMode (PIN_POTY, INPUT);
+	variableResistor.setValuePoint (AD5242_RDAC::RDAC2, RDAC_PULLUP_VALUE);
 
 	/* These are probably redundant, but let's make direction pins ready for
 	 * open-collector emulation, as there are used for buttons in analog mode
@@ -1986,7 +1990,7 @@ void handleAnalogJoystick () {
 	if (j.b3) {		// Pin 1, i.e.: up
 		buttonPress (PIN_UP);
 	} else {
-		buttonRelease (PIN_RIGHT);
+		buttonRelease (PIN_UP);
 	}
 
 	if (j.b4) {		// Pin 2, i.e.: down
