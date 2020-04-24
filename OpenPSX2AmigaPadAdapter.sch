@@ -1082,17 +1082,10 @@ Connection ~ 9505 4050
 Wire Wire Line
 	9505 4050 9505 4010
 Wire Wire Line
-	9040 4140 9040 4050
-Wire Wire Line
-	9040 4050 9300 4050
-Connection ~ 9300 4050
-Wire Wire Line
 	9300 4430 9300 4660
 Connection ~ 9300 4660
 Wire Wire Line
 	9300 4660 8390 4660
-Wire Wire Line
-	9040 4440 9040 5260
 Connection ~ 9040 5260
 Wire Wire Line
 	9040 5260 8390 5260
@@ -1254,13 +1247,13 @@ $EndComp
 $Comp
 L Device:R R12
 U 1 1 5DAFD7E8
-P 9040 4290
-F 0 "R12" H 9200 4140 50  0000 R CNN
-F 1 "10k" V 9040 4365 50  0000 R CNN
-F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 8970 4290 50  0001 C CNN
-F 3 "~" H 9040 4290 50  0001 C CNN
-	1    9040 4290
-	1    0    0    -1  
+P 4585 5405
+F 0 "R12" V 4700 5405 50  0000 C CNN
+F 1 "1M" V 4791 5405 50  0000 C CNN
+F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 4515 5405 50  0001 C CNN
+F 3 "~" H 4585 5405 50  0001 C CNN
+	1    4585 5405
+	0    1    1    0   
 $EndComp
 $Comp
 L Device:R R11
@@ -1455,8 +1448,8 @@ U 1 1 5F065454
 P 4585 5005
 AR Path="/5EFED7F9/5F065454" Ref="R?"  Part="1" 
 AR Path="/5F065454" Ref="R17"  Part="1" 
-F 0 "R17" V 4378 5005 50  0000 C CNN
-F 1 "1M" V 4469 5005 50  0000 C CNN
+F 0 "R17" V 4470 5005 50  0000 C CNN
+F 1 "1M" V 4379 5005 50  0000 C CNN
 F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 4515 5005 50  0001 C CNN
 F 3 "~" H 4585 5005 50  0001 C CNN
 	1    4585 5005
@@ -1538,8 +1531,8 @@ F 3 "" H 2035 6500 50  0001 C CNN
 	1    2035 6500
 	1    0    0    -1  
 $EndComp
-Text Notes 1230 6345 0    50   ~ 0
-5V -> 3.3V\nUP to 150 mA
+Text Notes 1170 6385 0    50   ~ 0
+5V -> 3.3V\nUP to 150 mA\n(Can't actually draw\nmore than 100 mA\nfrom Amiga ports)
 $Comp
 L Device:C C?
 U 1 1 5F065497
@@ -1588,7 +1581,7 @@ Wire Wire Line
 	1500 7345 1500 7420
 Wire Wire Line
 	1500 7345 2035 7345
-Text Notes 730  6060 0    100  ~ 0
+Text Notes 730  5910 0    100  ~ 0
 VOLTAGE REGULATION
 Text Notes 2425 6390 0    100  ~ 0
 DECOUPLING
@@ -1676,18 +1669,28 @@ Wire Wire Line
 	4185 5755 4290 5755
 Wire Wire Line
 	4290 4340 4290 5755
-Text Notes 4125 6285 0    50   ~ 0
-Resistance between Ax and Wx is:\nRaw = (256 − D) / 256 × Rab + Rw\n\nFor instance, with AD5242BR1M:\nRaw = 3966 ohm for D = 255\nRaw = 1000060 ohm for D = 0
+Text Notes 4135 6360 0    50   ~ 0
+Resistance between Ax and Wx is:\nRaw = (256 − D) / 256 × Rab + Rw\n\nFor instance, with AD5242BR1M:\nRw = 60, Rab = 1000000\nRaw = 3966 ohm for D = 255\nRaw = 1000060 ohm for D = 0
 Text Label 2015 1840 0    50   ~ 0
 clk-
 Text Label 2015 1940 0    50   ~ 0
 clk+
 Wire Wire Line
-	4185 5305 5190 5305
-Text Notes 4410 5640 0    50   ~ 0
-No parallel resistor here, as\nwe already have R12, which\nshall be 1M if analog support\nis desired.
+	4185 5305 4800 5305
+Text Notes 4725 5585 0    50   ~ 0
+Use 10k if U3\nis not installed
 Text Label 4455 7530 0    60   ~ 0
 dtr_in
-Text Notes 8950 4360 2    50   ~ 0
-If U3 is installed,\nuse 1M for R12
+Wire Wire Line
+	4385 5405 4435 5405
+Connection ~ 4385 5405
+Wire Wire Line
+	4735 5405 4800 5405
+Wire Wire Line
+	4800 5405 4800 5305
+Connection ~ 4800 5305
+Wire Wire Line
+	4800 5305 5190 5305
+Text Notes 4720 5185 0    50   ~ 0
+Do not populate if\nU3 is not installed
 $EndSCHEMATC
