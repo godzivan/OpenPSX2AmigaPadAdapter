@@ -40,10 +40,10 @@ private:
 
 public:
 	static const byte DEFAULT_ADDR = 0x2C;		// Add AD0/AD1
-	
-	boolean begin (byte _addr = DEFAULT_ADDR) {
+
+	boolean begin (const byte _addr = DEFAULT_ADDR) {
 		boolean ret = false;
-		
+
 		Wire.begin (); // Join i2c bus
 
 		Wire.beginTransmission (_addr);
@@ -57,8 +57,12 @@ public:
 
 		return ret;
 	}
-	
-	void setValuePoint (AD5242_RDAC rdac, byte _point) {
+
+	void suspend () {
+		Wire.end ();
+	}
+
+	void setValuePoint (const AD5242_RDAC rdac, const byte _point) {
 		byte inst = outputs;
 		if (rdac == AD5242_RDAC::RDAC2) {
 			inst |= 1 << B_RDAC;	// A high selects RDAC2 for the dual-channel AD5242
@@ -66,14 +70,14 @@ public:
 			// Save point se we can resend it in setOutputs()
 			point0 = _point;
 		}
-		
+
 		Wire.beginTransmission (addr);	// transmit to device
-		Wire.write (inst);				// sends instruction byte  
-		Wire.write (_point);            // sends potentiometer value byte  
+		Wire.write (inst);				// sends instruction byte
+		Wire.write (_point);            // sends potentiometer value byte
 		Wire.endTransmission ();		// stop transmitting
 	}
 
-	void setOutputs (byte o1, byte o2) {
+	void setOutputs (const byte o1, const byte o2) {
 		if (o1) {
 			outputs |= 1 << B_OUTPUT1;
 		} else {
@@ -87,12 +91,12 @@ public:
 		}
 
 		Wire.beginTransmission (addr);	// transmit to device
-		Wire.write (outputs);			// sends instruction byte  
-		Wire.write (point0);            // sends potentiometer value byte  
+		Wire.write (outputs);			// sends instruction byte
+		Wire.write (point0);            // sends potentiometer value byte
 		Wire.endTransmission ();		// stop transmitting
 	}
 
-	void resetToMid (AD5242_RDAC rdac) {
+	void resetToMid (const AD5242_RDAC rdac) {
 		byte inst = outputs | (1 << B_RESET);
 		if (rdac == AD5242_RDAC::RDAC2) {
 			inst |= 1 << B_RDAC;
@@ -100,10 +104,27 @@ public:
 			// Save point se we don't mess up in setOutputs()
 			point0 = 128;				// Midpoint, where Raw == Rwb
 		}
-		
+
 		Wire.beginTransmission (addr);	// transmit to device
-		Wire.write (inst);				// sends instruction byte  
-		Wire.write (point0);             // sends potentiometer value byte  
+		Wire.write (inst);				// sends instruction byte
+		Wire.write (point0);            // sends potentiometer value byte
 		Wire.endTransmission ();		// stop transmitting
-	}	
+	}
+
+	void read (byte& p1, byte& p2) {
+		Wire.beginTransmission (addr);	// transmit to device
+		Wire.write (outputs);			// Select RDAC1
+		Wire.endTransmission (false);	// Switch to read mode
+		Wire.requestFrom (addr, (byte) 1, (byte) 0);		// Read RDAC1 value
+		while (Wire.available () < 1)
+			;
+		p1 = Wire.read ();
+		Wire.beginTransmission (addr);
+		Wire.write (outputs | (1 << B_RDAC));
+		Wire.endTransmission (false);	// Switch to read mode
+		Wire.requestFrom (addr, (byte) 1);// Read RDAC2 value
+		while (Wire.available () < 1)
+			;
+		p2 = Wire.read ();
+	}
 };

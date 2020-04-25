@@ -141,7 +141,7 @@ const byte PIN_POTX = PIN_PADMODE;		// Pin 5
  */
 const byte PIN_POTY = PIN_BTN2;			// Pin 5
 
-const byte RDAC_PULLUP_VALUE = 253;		// 11641 ohm
+const byte RDAC_PULLUP_VALUE = 253;		// 11642 ohm
 #endif
 
 /** \brief Dead zone for analog sticks
@@ -797,6 +797,8 @@ ISR (INT0_vect) {
 			: "r" (*buttonsLive)
 		);
 #endif
+
+		//~ TIMSK0 &= ~(1 << TOIE0);
 						 
 		// Enable INT1, i.e. interrupt on clock edges
 		restoreClockInterrupt ();
@@ -841,7 +843,9 @@ ISR (INT0_vect) {
 		
 		// Disable INT1
 		suspendClockInterrupt ();
-			
+
+		//~ TIMSK0 |= 1 << TOIE0;
+		
 		// Set state to ST_JOYSTICK_TEMP
 		*state = ST_JOYSTICK_TEMP;
 		
@@ -1060,6 +1064,15 @@ void setup () {
 		// Same goes for the pull-up on pin 5/POTX/PIN_PADMODE, parallel to R17
 		fastPinMode (PIN_PADMODE, INPUT);
 		variableResistor.setValuePoint (AD5242_RDAC::RDAC1, RDAC_PULLUP_VALUE);
+
+#ifdef ENABLE_SERIAL_DEBUG
+		byte r1, r2;
+		variableResistor.read (r1, r2);
+		debug (F("Readback AD5242 values = "));
+		debug (r1);
+		debug (F(", "));
+		debugln (r2);
+#endif
 	} else {
 		/* This pin tells us when to toggle in/out of CD32 mode, and it will always
 		 * be an input
@@ -1203,6 +1216,15 @@ void analogToDigital () {
 	fastDigitalWrite (PIN_POTY, LOW);
 	fastPinMode (PIN_POTY, INPUT);
 	variableResistor.setValuePoint (AD5242_RDAC::RDAC2, RDAC_PULLUP_VALUE);
+
+#ifdef ENABLE_SERIAL_DEBUG
+	byte r1, r2;
+	variableResistor.read (r1, r2);
+	debug (F("Readback AD5242 values = "));
+	debug (r1);
+	debug (F(", "));
+	debugln (r2);
+#endif
 
 	/* These are probably redundant, but let's make direction pins ready for
 	 * open-collector emulation, as there are used for buttons in analog mode
@@ -1973,6 +1995,15 @@ void handleAnalogJoystick () {
 	debugln (y);
 	variableResistor.setValuePoint (AD5242_RDAC::RDAC1, x);
 	variableResistor.setValuePoint (AD5242_RDAC::RDAC2, y);
+
+#ifdef ENABLE_SERIAL_DEBUG
+	byte r1, r2;
+	variableResistor.read (r1, r2);
+	debug (F("Readback AD5242 values = "));
+	debug (r1);
+	debug (F(", "));
+	debugln (r2);
+#endif
 
 	// Make mapped buttons affect the actual pins
 	if (j.b1) {		// This uses pin 3, i.e.: left
