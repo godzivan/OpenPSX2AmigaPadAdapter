@@ -26,8 +26,6 @@
  * https://github.com/SukkoPera/OpenPSX2AmigaPadAdapter
  */
 
-#include <EEPROM.h>
-#include <util/crc16.h>
 #include <PsxNewLib.h>
 #include <PsxControllerHwSpi.h>
 
@@ -75,7 +73,16 @@
  * At the moment we fit on all supported targets with this enabled, so just
  * ignore it.
  */
-//~ #define DISABLE_FACTORY_RESET
+#define DISABLE_FACTORY_RESET
+
+/** \def DISABLE_EEPROM
+ *
+ * \brief Disable EEPROM support
+ * 
+ * This disables loading and storing controller configurations from/to the
+ * internal EEPROM. Only useful for development.
+ */
+//~ #define DISABLE_EEPROM
 
 /** \def ENABLE_ANALOG_SUPPORT
  *
@@ -245,6 +252,11 @@ const unsigned long DEBOUNCE_TIME_COMBO = 150U;
 /*******************************************************************************
  * END OF SETTINGS
  ******************************************************************************/
+
+#ifndef DISABLE_EEPROM
+#include <EEPROM.h>
+#include <util/crc16.h>
+#endif
 
 #ifdef ENABLE_FAST_IO
 #include <DigitalIO.h>		// https://github.com/greiman/DigitalIO
@@ -970,10 +982,12 @@ void clearConfigurations () {
  */
 uint16_t calculateConfigCrc () {
 	uint16_t crc = 0x4242;
+#ifndef DISABLE_EEPROM
 	uint8_t *data = (uint8_t *) controllerConfigs;
 	for (word i = 0; i < sizeof (controllerConfigs); ++i) {
 		crc = _crc16_update (crc, data[i]);
 	}
+#endif
 	
 	return crc;
 }
@@ -986,7 +1000,8 @@ uint16_t calculateConfigCrc () {
  */
 boolean loadConfigurations () {
 	boolean ret = false;
-	
+
+#ifndef DISABLE_EEPROM
 	debug (F("Size of controllerConfigs is "));
 	debugln (sizeof (controllerConfigs));
 	
@@ -1003,12 +1018,14 @@ boolean loadConfigurations () {
 		debugln (F("CRCs do not match"));
 		clearConfigurations ();
 	}
+#endif
 	
 	return ret;
 }
 
 //! \brief Save controller configurations to EEPROM
 void saveConfigurations () {
+#ifndef DISABLE_EEPROM
 	debugln (F("Saving controllerConfigs"));
 	
 	EEPROM.put (4, controllerConfigs);
@@ -1016,6 +1033,7 @@ void saveConfigurations () {
 	// CRC
 	uint16_t crc = calculateConfigCrc ();
 	EEPROM.put (2, crc);
+#endif
 }
 
 void setup () {
@@ -2556,7 +2574,6 @@ void stateMachine () {
 					// Shouldn't be reached
 					break;
 			}
-			
 			if (*state == ST_ENABLE_MAPPING) {
 				*state = ST_JOYSTICK;		// Get out!
 			}
