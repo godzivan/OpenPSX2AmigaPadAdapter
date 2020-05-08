@@ -73,7 +73,7 @@
  * At the moment we fit on all supported targets with this enabled, so just
  * ignore it.
  */
-#define DISABLE_FACTORY_RESET
+//~ #define DISABLE_FACTORY_RESET
 
 /** \def DISABLE_EEPROM
  *
@@ -2652,7 +2652,7 @@ void stateMachine () {
 		case ST_FACTORY_RESET_WAIT_1:
 			if (stateEnteredTime == 0) {
 				stateEnteredTime = millis ();
-			} else if (millis () - stateEnteredTime > 2000UL) {
+			} else if (millis () - stateEnteredTime > 2500UL) {
 				stateEnteredTime = 0;
 				*state = ST_FACTORY_RESET_WAIT_2;
 			} else if (!psx.buttonPressed (PSB_SELECT)) {
@@ -2663,7 +2663,7 @@ void stateMachine () {
 		case ST_FACTORY_RESET_WAIT_2:
 			if (stateEnteredTime == 0) {
 				stateEnteredTime = millis ();
-			} else if (millis () - stateEnteredTime > 2000UL) {
+			} else if (millis () - stateEnteredTime > 2500UL) {
 				stateEnteredTime = 0;
 				*state = ST_FACTORY_RESET_PERFORM;
 			} else if (!psx.buttonPressed (PSB_SELECT)) {
@@ -2673,6 +2673,13 @@ void stateMachine () {
 			break;
 		case ST_FACTORY_RESET_PERFORM:
 			// OK, user has convinced us to actually perform the reset
+			for (byte i = 0; i < 2; ++i) {
+				fastDigitalWrite (PIN_LED_MODE, LOW);
+				delay (500);
+				fastDigitalWrite (PIN_LED_MODE, HIGH);
+				delay (500);
+			}
+			delay (500);
 			clearConfigurations ();
 			saveConfigurations ();
 			*state = ST_JOYSTICK;
@@ -2701,11 +2708,6 @@ void updateLeds () {
 		case ST_NO_CONTROLLER:
 		case ST_FIRST_READ:
 		case ST_WAIT_SELECT_RELEASE_FOR_EXIT:
-#ifndef DISABLE_FACTORY_RESET
-		case ST_FACTORY_RESET_PERFORM:	// Led for this state is handled in SM
-#endif
-			fastDigitalWrite (PIN_LED_MODE, LOW);
-			break;		
 		case ST_JOYSTICK:
 		case ST_SELECT_HELD:
 		case ST_SELECT_AND_BTN_HELD:
@@ -2737,7 +2739,10 @@ void updateLeds () {
 		case ST_FACTORY_RESET_WAIT_2:
 			fastDigitalWrite (PIN_LED_MODE, (millis () / 80) % 2 == 0);
 			break;
-#endif
+		case ST_FACTORY_RESET_PERFORM:
+			// This state handles leds in SM, don't touch
+			break;
+#endif		
 		default:
 			// WTF?! Blink fast... er!
 			fastDigitalWrite (PIN_LED_MODE, (millis () / 100) % 2 == 0);
