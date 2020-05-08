@@ -1499,6 +1499,8 @@ void mapJoystickPlatform (TwoButtonJoystick& j) {
 	j.b2 = psx.buttonPressed (PSB_TRIANGLE) || psx.buttonPressed (PSB_L1) || psx.buttonPressed (PSB_L2) || psx.buttonPressed (PSB_L3);
 }
 
+#ifdef ENABLE_ANALOG_SUPPORT
+
 /** \brief Map PSX controller to analog joystick (Left stick)
  * 
  * \param[out] j Mapped joystick status
@@ -1660,6 +1662,8 @@ void mapJoystickAnalogLVRH (AnalogJoystick& j) {
 	j.b3 = psx.buttonPressed (PSB_CIRCLE);
 	j.b4 = psx.buttonPressed (PSB_TRIANGLE);
 }
+
+#endif	// ENABLE_ANALOG_SUPPORT
 
 /** \brief Map PSX controller buttons to two-button joystick according to the
  *         current Custom mapping
@@ -2030,6 +2034,8 @@ void handleJoystickButtonsTemp () {
 	interrupts ();
 }
 
+#ifdef ENABLE_ANALOG_SUPPORT
+
 /** \brief Update the output pins (Analog mode)
  * 
  * This functions updates the status of all pins of the DB-9 port. It does so
@@ -2111,6 +2117,7 @@ void handleAnalogJoystick () {
 		buttonRelease (PIN_DOWN);
 	}
 }
+#endif
 
 /** \brief Update all output pins for Mouse mode
  * 
