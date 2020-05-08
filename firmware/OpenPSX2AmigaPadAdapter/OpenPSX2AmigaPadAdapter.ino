@@ -331,6 +331,7 @@ enum ATTR_PACKED State {
 #ifdef ENABLE_ANALOG_SUPPORT
 	ST_ANALOG,					//!< Analog joystick mode
 	ST_ANALOG_SELECT_HELD,
+	ST_ANALOG_SELECT_AND_BTN_HELD,
 	ST_ANALOG_ENABLE_MAPPING,
 #endif
 };
@@ -2482,21 +2483,27 @@ void stateMachine () {
 				*state = ST_ANALOG;
 			} else if (psx.buttonPressed (PSB_SQUARE)) {
 				selectComboButton = PSB_SQUARE;
-				*state = ST_ANALOG_ENABLE_MAPPING;
+				*state = ST_ANALOG_SELECT_AND_BTN_HELD;
 			} else if (psx.buttonPressed (PSB_TRIANGLE)) {
 				selectComboButton = PSB_TRIANGLE;
-				*state = ST_ANALOG_ENABLE_MAPPING;
+				*state = ST_ANALOG_SELECT_AND_BTN_HELD;
 			} else if (psx.buttonPressed (PSB_CIRCLE)) {
 				selectComboButton = PSB_CIRCLE;
-				*state = ST_ANALOG_ENABLE_MAPPING;
+				*state = ST_ANALOG_SELECT_AND_BTN_HELD;
 			} else if (psx.buttonPressed (PSB_CROSS)) {
 				selectComboButton = PSB_CROSS;
-				*state = ST_ANALOG_ENABLE_MAPPING;
+				*state = ST_ANALOG_SELECT_AND_BTN_HELD;
 			} else if (psx.buttonPressed (PSB_START)) {
 				selectComboButton = PSB_START;
-				*state = ST_ANALOG_ENABLE_MAPPING;
+				*state = ST_ANALOG_SELECT_AND_BTN_HELD;
 			} else if (psx.buttonPressed (PSB_PAD_DOWN)) {
 				selectComboButton = PSB_PAD_DOWN;
+				*state = ST_ANALOG_SELECT_AND_BTN_HELD;
+			}
+			break;
+		case ST_ANALOG_SELECT_AND_BTN_HELD:
+			if (!psx.buttonPressed (PSB_SELECT) || !psx.buttonPressed (selectComboButton)) {
+				// Combo released, switch to desired mapping
 				*state = ST_ANALOG_ENABLE_MAPPING;
 			}
 			break;
