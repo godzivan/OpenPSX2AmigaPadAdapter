@@ -299,6 +299,7 @@ const byte BTN_START =		1U << 6U;	//!< \a Start/Pause Button
 enum ATTR_PACKED State {
 	ST_NO_CONTROLLER,			//!< No controller connected
 	ST_FIRST_READ,				//!< First time the controller is read
+	ST_TEST_MODE,				//!< Controller test mode
 	
 	// Main functioning modes
 	ST_JOYSTICK,				//!< Two-button joystick mode
@@ -1721,9 +1722,70 @@ void flashLed (byte n) {
 	}
 }
 
+/** \brief Check if the left analog stick has been moved
+ * 
+ * The stick is not considered moved if it moves less than #ANALOG_DEAD_ZONE.
+ * 
+ * \sa rightAnalogMoved
+ * 
+ * \param[out] x Movement on the horizontal axis [-127 ... 127]
+ * \param[out] y Movement on the vertical axis [-127 ... 127]
+ * \return True if the stick is not in the center position, false otherwise
+ */
+boolean leftAnalogMoved (int8_t& x, int8_t& y) {
+	boolean ret = false;
+	byte lx, ly;
+	
+	if (psx.getLeftAnalog (lx, ly)) {				// [0 ... 255]
+		int8_t deltaLX = lx - ANALOG_IDLE_VALUE;	// [-128 ... 127]
+		uint8_t deltaLXabs = abs (deltaLX);
+		if (deltaLXabs > ANALOG_DEAD_ZONE) {
+			x = deltaLX;
+			if (x == -128)
+				x = -127;
+			ret = true;
+		} else {
+			x = 0;
+		}
+		
+		int8_t deltaLY = ly - ANALOG_IDLE_VALUE;
+		uint8_t deltaLYabs = abs (deltaLY);
+		if (deltaLYabs > ANALOG_DEAD_ZONE) {
+			ly = deltaLY;
+			if (y == -128)
+				y = -127;
+			ret = true;
+		} else {
+			y = 0;
+		}
+		
+#ifdef ENABLE_SERIAL_DEBUG
+		if (ret) {
+			static int oldx = -1000;
+			if (x != oldx) {
+				debug (F("L Analog X = "));
+				debugln (x);
+				oldx = x;
+			}
+
+			static int oldy = -1000;
+			if (y != oldy) {
+				debug (F("L Analog Y = "));
+				debugln (y);
+				oldy = y;
+			}
+		}
+#endif
+	}
+	
+	return ret;
+}
+
 /** \brief Check if the right analog stick has been moved
  * 
  * The stick is not considered moved if it moves less than #ANALOG_DEAD_ZONE.
+ * 
+ * \sa leftAnalogMoved
  * 
  * \param[out] x Movement on the horizontal axis [-127 ... 127]
  * \param[out] y Movement on the vertical axis [-127 ... 127]
@@ -2308,21 +2370,49 @@ void stateMachine () {
 				 */
 				mouseToJoystick ();
 				*state = ST_FIRST_READ;
+				stateEnteredTime = 0;
 			}
 			break;
 		case ST_FIRST_READ:
-			if (psx.buttonPressed (PSB_SELECT)) {
+			if (stateEnteredTime == 0) {
+				// State was just entered
+				stateEnteredTime = millis ();
+			} else if (millis () - stateEnteredTime > 500UL) {
+				// Timeout, let's move on
+				stateEnteredTime = 0;
+				*state = ST_JOYSTICK;
+			} else if (psx.buttonPressed (PSB_SELECT)) {
+				stateEnteredTime = 0;
 #ifndef DISABLE_FACTORY_RESET
-				/* The controller was plugged in (or the adapter was powered on)
-				 * with SELECT held, so the user wants to do a factory reset
+				/* SELECT pressed early after controller was plugged in (or the
+				 * adapter was powered on), so the user wants to do a factory
+				 * reset
 				 */
 				debugln (F("SELECT pressed at power-up, starting factory reset"));
 				*state = ST_FACTORY_RESET_WAIT_1;
 #endif
-			} else {
-				*state = ST_JOYSTICK;
+			} else if (psx.buttonPressed (PSB_START)) {
+				stateEnteredTime = 0;
+#ifndef DISABLE_TEST_MODE
+				// START pressed early, the user wants to switch to test mode
+				debugln (F("START pressed at power-up, switching to test mode"));
+				*state = ST_TEST_MODE;
+#endif
 			}
 			break;
+			
+		/**********************************************************************
+		 * TEST MODE
+		 **********************************************************************/
+		case ST_TEST_MODE: {
+			int8_t dummy;
+			
+			buttons = debounceButtons (DEBOUNCE_TIME_BUTTON);
+			fastDigitalWrite (PIN_LED_MODE, buttons != PSB_NONE ||
+			                                leftAnalogMoved (dummy, dummy) ||
+			                                rightAnalogMoved (dummy, dummy));
+			break;
+		}
 				
 		/**********************************************************************
 		 * MAIN MODES
@@ -2739,10 +2829,13 @@ void updateLeds () {
 		case ST_FACTORY_RESET_WAIT_2:
 			fastDigitalWrite (PIN_LED_MODE, (millis () / 80) % 2 == 0);
 			break;
+#endif
+		case ST_TEST_MODE:
+#ifndef DISABLE_FACTORY_RESET
 		case ST_FACTORY_RESET_PERFORM:
-			// This state handles leds in SM, don't touch
-			break;
 #endif		
+			// These states handle leds in SM, don't touch
+			break;
 		default:
 			// WTF?! Blink fast... er!
 			fastDigitalWrite (PIN_LED_MODE, (millis () / 100) % 2 == 0);
