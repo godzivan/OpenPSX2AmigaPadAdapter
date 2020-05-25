@@ -563,6 +563,15 @@ boolean c64Mode = false;
  */
 boolean useAlternativeCd32Mapping = false;
 
+/** \brief Inhibit CD32 mode
+ * 
+ * This inhibits the CD32 mode. Useful in those cases where pin 5 is not kept
+ * high.
+ *
+ * This is enabled by holding \a Cross at power-up.
+ */
+boolean inhibitCd32Mode = false;
+
 //! @}		// End of global variables
 
 #ifdef ENABLE_SERIAL_DEBUG
@@ -939,27 +948,29 @@ ISR (INT1_vect) {
  * #PIN_PADMODE, after this function has been called.
  */
 inline void enableCD32Trigger () {
-	noInterrupts ();
-	
-	/* Clear any pending interrupts, see
-	 * https://github.com/arduino/ArduinoCore-avr/issues/244
-	 */
-	EIFR |= (1 << INTF0);
+	if (!inhibitCd32Mode) {
+		noInterrupts ();
+		
+		/* Clear any pending interrupts, see
+		 * https://github.com/arduino/ArduinoCore-avr/issues/244
+		 */
+		EIFR |= (1 << INTF0);
 
 #ifndef SUPER_OPTIMIZE
-	// Enable interrupt 0 (i.e.: on pin 2)...
-	attachInterrupt (digitalPinToInterrupt (PIN_PADMODE), onPadModeChange, CHANGE);
+		// Enable interrupt 0 (i.e.: on pin 2)...
+		attachInterrupt (digitalPinToInterrupt (PIN_PADMODE), onPadModeChange, CHANGE);
 
-	// ... and interrupt 1 (pin 3)
-	attachInterrupt (digitalPinToInterrupt (PIN_BTNREGCLK), onClockEdge, RISING);
+		// ... and interrupt 1 (pin 3)
+		attachInterrupt (digitalPinToInterrupt (PIN_BTNREGCLK), onClockEdge, RISING);
 
-	// ... but keep the latter on hold
-	suspendClockInterrupt ();	
+		// ... but keep the latter on hold
+		suspendClockInterrupt ();	
 #else
-	EIMSK |= (1 << INT0);
+		EIMSK |= (1 << INT0);
 #endif
 
-	interrupts ();
+		interrupts ();
+	}
 }
 
 /** \brief Disable CD32 controller support
@@ -2413,20 +2424,27 @@ void stateMachine () {
 				// Timeout, let's move on
 				stateEnteredTime = 0;
 				*state = ST_JOYSTICK;
+			} else if (psx.buttonPressed (PSB_CROSS)) {
+				/* CROSS pressed early after controller was plugged in (or the
+				 * adapter was powered on), so the user wants to inhibit CD32
+				 * mode
+				 */
+				debugln (F("CROSS pressed at power-up, inhibiting CD32 mode"));
+				disableCD32Trigger ();
+				inhibitCd32Mode = true;
+				stateEnteredTime = 0;
+				*state = ST_JOYSTICK;
 #ifndef DISABLE_FACTORY_RESET
 			} else if (psx.buttonPressed (PSB_SELECT)) {
 				stateEnteredTime = 0;
-				/* SELECT pressed early after controller was plugged in (or the
-				 * adapter was powered on), so the user wants to do a factory
-				 * reset
-				 */
+				// SELECT pressed early, user wants to do a factory reset
 				debugln (F("SELECT pressed at power-up, starting factory reset"));
 				*state = ST_FACTORY_RESET_WAIT_1;
 #endif
 #ifndef DISABLE_TEST_MODE
 			} else if (psx.buttonPressed (PSB_START)) {
 				stateEnteredTime = 0;
-				// START pressed early, the user wants to switch to test mode
+				// START pressed early, user wants to switch to test mode
 				debugln (F("START pressed at power-up, switching to test mode"));
 				*state = ST_TEST_MODE;
 #endif
