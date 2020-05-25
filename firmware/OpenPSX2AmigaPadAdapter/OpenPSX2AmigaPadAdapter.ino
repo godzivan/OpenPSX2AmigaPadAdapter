@@ -75,6 +75,16 @@
  */
 //~ #define DISABLE_FACTORY_RESET
 
+/** \def #ifndef DISABLE_TEST_MODE
+ *
+ * \brief Disable controller test mode
+ * 
+ * This disables the controller test mode that is entered by holding \a START
+ * at power-up. The only point again is to save some flash, for ATmega88
+ * targets.
+ */
+//~ #define DISABLE_TEST_MODE
+
 /** \def DISABLE_EEPROM
  *
  * \brief Disable EEPROM support
@@ -299,7 +309,10 @@ const byte BTN_START =		1U << 6U;	//!< \a Start/Pause Button
 enum ATTR_PACKED State {
 	ST_NO_CONTROLLER,			//!< No controller connected
 	ST_FIRST_READ,				//!< First time the controller is read
+
+#ifndef DISABLE_TEST_MODE
 	ST_TEST_MODE,				//!< Controller test mode
+#endif
 	
 	// Main functioning modes
 	ST_JOYSTICK,				//!< Two-button joystick mode
@@ -2423,6 +2436,7 @@ void stateMachine () {
 		/**********************************************************************
 		 * TEST MODE
 		 **********************************************************************/
+#ifndef DISABLE_TEST_MODE
 		case ST_TEST_MODE: {
 			int8_t dummy;
 			
@@ -2432,6 +2446,7 @@ void stateMachine () {
 			                                rightAnalogMoved (dummy, dummy));
 			break;
 		}
+#endif
 				
 		/**********************************************************************
 		 * MAIN MODES
@@ -2855,7 +2870,9 @@ void updateLeds () {
 			fastDigitalWrite (PIN_LED_MODE, (millis () / 80) % 2 == 0);
 			break;
 #endif
+#ifndef DISABLE_TEST_MODE
 		case ST_TEST_MODE:
+#endif
 #ifndef DISABLE_FACTORY_RESET
 		case ST_FACTORY_RESET_PERFORM:
 #endif		
