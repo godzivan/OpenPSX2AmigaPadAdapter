@@ -780,6 +780,10 @@ ISR (INT0_vect) {
 #ifdef ENABLE_INSTRUMENTATION
 	fastDigitalToggle (PIN_INTERRUPT_TIMING);
 #endif
+
+	// Enable INT1, i.e. interrupt on clock edges
+	restoreClockInterrupt ();
+
 	if (fastDigitalRead (PIN_PADMODE) == LOW) {
 		// Switch to CD32 mode
 		debugln (F("Joystick -> CD32"));
@@ -823,9 +827,6 @@ ISR (INT0_vect) {
 #endif
 
 		//~ TIMSK0 &= ~(1 << TOIE0);
-						 
-		// Enable INT1, i.e. interrupt on clock edges
-		restoreClockInterrupt ();
 
 		// Set state to ST_CD32
 		*state = ST_CD32;
