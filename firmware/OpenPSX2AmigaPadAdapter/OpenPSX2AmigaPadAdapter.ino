@@ -95,7 +95,7 @@
  *
  * A V4 PCB with an AD5242 chip is needed for this functionality.
  */
-#define ENABLE_ANALOG_SUPPORT
+//~ #define ENABLE_ANALOG_SUPPORT
 
 //~ #define DISABLE_ANALOG_OUTPUT_COMPENSATION
 
