@@ -783,9 +783,6 @@ ISR (INT0_vect) {
 	if (fastDigitalRead (PIN_PADMODE) == LOW) {
 		// Switch to CD32 mode
 		debugln (F("Joystick -> CD32"));
-
-		// Immediately disable output on clock pin
-		fastPinMode (PIN_BTNREGCLK, INPUT);
 		
 		// Output status of first button as soon as possible
 		fastPinMode (PIN_BTNREGOUT, OUTPUT);
