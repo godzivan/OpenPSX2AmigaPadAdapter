@@ -702,7 +702,7 @@ byte psxButtonToIndex (PsxButtons psxButtons) {
  * \param[in] psxButtons Button to be converted
  * \return A string (in flash) containing the name of the "first" buton pressed
  */
-FlashStr getButtonName (PsxButtons psxButton) {
+FlashStr getButtonName (const PsxButtons psxButton) {
 	FlashStr ret = F("");
 	
 	byte b = psxButtonToIndex (psxButton);
@@ -719,7 +719,7 @@ FlashStr getButtonName (PsxButtons psxButton) {
  * 
  * \param[in] psxButtons Buttons to be printed
  */
-void dumpButtons (PsxButtons psxButtons) {
+void dumpButtons (const PsxButtons psxButtons) {
 #ifdef DEBUG_PAD
 	static PsxButtons lastB = 0;
 
