@@ -105,7 +105,7 @@
  *
  * A V4 PCB with an AD5242 chip is needed for this functionality.
  */
-//~ #define ENABLE_ANALOG_SUPPORT
+#define ENABLE_ANALOG_SUPPORT
 
 //~ #define DISABLE_ANALOG_OUTPUT_COMPENSATION
 
@@ -811,7 +811,6 @@ ISR (INT0_vect) {
 		debugln (F("Joystick -> CD32"));
 		
 		// Output status of first button as soon as possible
-		fastPinMode (PIN_BTNREGOUT, OUTPUT);
 		if (!(*buttonsLive & 0x01)) {
 			fastDigitalWrite (PIN_BTNREGOUT, LOW);
 		} else {
